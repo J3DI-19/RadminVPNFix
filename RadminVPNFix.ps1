@@ -103,7 +103,7 @@ function Show-Status {
     }
 
     $adapter | Select-Object Name, InterfaceDescription, ifIndex, Status, MacAddress, LinkSpeed | Format-List
-    $routes = Get-RadminDefaultRoutes -InterfaceIndex $adapter.ifIndex
+    $routes = @(Get-RadminDefaultRoutes -InterfaceIndex $adapter.ifIndex)
     if ($routes.Count -eq 0) {
         Write-Host 'No IPv4 default routes are assigned to this adapter.'
     }
@@ -137,11 +137,17 @@ function Disable-Radmin {
 
     if ($RemoveDefaultRoutes) {
         $savedRoutes = @($routes | ForEach-Object {
+            $policyStore = if ($_.PSObject.Properties.Name -contains 'PolicyStore') {
+                [string]$_.PolicyStore
+            }
+            else {
+                $null
+            }
             [pscustomobject]@{
                 DestinationPrefix = [string]$_.DestinationPrefix
                 NextHop           = [string]$_.NextHop
                 RouteMetric       = [uint32]$_.RouteMetric
-                PolicyStore       = [string]$_.PolicyStore
+                PolicyStore       = $policyStore
             }
         })
     }
