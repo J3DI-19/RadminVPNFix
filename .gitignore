@@ -1,4 +1,4 @@
-# Local state created during disable/restore operations
+# State files created by older releases
 .radmin-vpn-fix-state.json
 
 # PowerShell tooling and editor files

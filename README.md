@@ -1,81 +1,60 @@
 # Radmin VPN Fix
 
-A small, reversible PowerShell utility for diagnosing and temporarily disabling Radmin VPN when its service, virtual adapter, or default route interferes with another VPN.
+A small PowerShell script that runs the commands from the original troubleshooting note when Radmin VPN interferes with another VPN.
 
-The project grew out of a local troubleshooting note. The utility does not depend on any user profile, drive letter, installation directory, or laptop-specific path.
-
-## What it does
-
-- Reports the state of the `RvControlSvc` service and matching Radmin VPN adapter.
-- Shows IPv4 default routes assigned to that adapter.
-- Temporarily sets the service to `Manual`, stops it, and disables the adapter.
-- Saves the previous service and adapter state beside the script so it can be restored.
-- Optionally removes only default routes tied to the detected Radmin interface. Removed routes are saved and recreated on restore.
-
-It does **not** uninstall Radmin VPN, edit application files, or delete unrelated routes.
+It has no user-specific paths, installation paths, or fixed interface indexes.
 
 ## Requirements
 
 - Windows 10 or Windows 11
 - Windows PowerShell 5.1 or PowerShell 7+
-- Administrator privileges for `Disable` and `Restore`
-- The built-in `NetAdapter`, `NetTCPIP`, and `CimCmdlets` modules
+- PowerShell opened with **Run as administrator**
+- Radmin VPN installed with its standard service and adapter names
 
-## Usage
+## Disable Radmin VPN
 
-Open PowerShell in this folder. Status checks can normally run without elevation:
-
-```powershell
-.\RadminVPNFix.ps1 -Action Status
-```
-
-To temporarily disable Radmin VPN, open PowerShell **as Administrator**:
+Open an elevated PowerShell in this folder and run:
 
 ```powershell
-.\RadminVPNFix.ps1 -Action Disable
+.\RadminVPNFix.ps1
 ```
 
-If a Radmin-owned default route remains a problem, use the opt-in route cleanup. The script limits removal to the detected Radmin adapter and records each route before changing it:
+That performs the equivalent of:
 
 ```powershell
-.\RadminVPNFix.ps1 -Action Disable -RemoveDefaultRoutes
+Stop-Service -Name RvControlSvc -Force
+Set-Service -Name RvControlSvc -StartupType Manual
+Disable-NetAdapter -Name "Radmin VPN" -Confirm:$false
+route delete 0.0.0.0 mask 0.0.0.0 26.0.0.1
 ```
 
-Restore the saved state later:
+## Restore Radmin VPN
 
 ```powershell
 .\RadminVPNFix.ps1 -Action Restore
 ```
 
-If the adapter has a nonstandard name, specify it explicitly:
+That performs the equivalent of:
 
 ```powershell
-.\RadminVPNFix.ps1 -Action Status -AdapterName "My Radmin Adapter"
+Enable-NetAdapter -Name "Radmin VPN"
+Set-Service -Name RvControlSvc -StartupType Automatic
+Start-Service -Name RvControlSvc
 ```
 
-Use `-WhatIf` with a modifying action to preview changes:
+## Check status
 
 ```powershell
-.\RadminVPNFix.ps1 -Action Disable -RemoveDefaultRoutes -WhatIf
+.\RadminVPNFix.ps1 -Action Status
 ```
 
-## Safety and recovery
+For a nonstandard installation, override the defaults:
 
-The state file, `.radmin-vpn-fix-state.json`, is intentionally ignored by Git because it contains local interface details. Keep it until restoration succeeds. Running `Disable` again does not overwrite an existing state file.
+```powershell
+.\RadminVPNFix.ps1 -AdapterName "My Radmin Adapter" -ServiceName "RvControlSvc" -Gateway "26.0.0.1"
+```
 
-If the script cannot restore a route automatically, reconnecting or reinstalling Radmin VPN will normally recreate its adapter configuration. A Windows reboot is recommended after disabling or restoring if another VPN still sees stale network state.
-
-## Troubleshooting
-
-- **Administrator privileges are required**: relaunch PowerShell using **Run as administrator**.
-- **No Radmin VPN adapter was found**: check `Get-NetAdapter` and pass its exact name with `-AdapterName`.
-- **Execution policy blocks the script**: use a process-scoped policy without changing the machine-wide setting:
-
-  ```powershell
-  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-  ```
-
-See [docs/original-diagnostic-note.md](docs/original-diagnostic-note.md) for the original troubleshooting context.
+See [docs/original-diagnostic-note.md](docs/original-diagnostic-note.md) for the source note.
 
 ## License
 

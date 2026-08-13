@@ -30,4 +30,4 @@ This is the strongest confirmed cause so far. Also update Proton from v4.3.13, s
 
 One correction: an earlier diagnostic process filter was too broad and may have attempted to stop unrelated processes whose names contained `rv`. No configuration files were changed; reboot Windows to restore normal services.
 
-The repository script improves on these commands by discovering the adapter, scoping route changes to its interface, saving state for reversal, and supporting `-WhatIf`.
+The repository script packages these same commands behind `Disable`, `Restore`, and `Status` actions while allowing the service name, adapter name, and gateway to be overridden.
